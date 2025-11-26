@@ -32,8 +32,14 @@
     <input type="number" name="harga" value="{{ old('harga') }}" 
       style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc; margin-bottom:12px;" required>
 
-    <button type="submit" style="background:#007bff; color:white; padding:10px 16px; border:none; border-radius:8px; cursor:pointer;">Simpan</button>
-    <a href="{{ route('products.index') }}" style="margin-left:10px; text-decoration:none; color:#555;">Kembali</a>
+      <button type="submit" class="btn btn-primary btn-sm">
+    Simpan
+</button>
+
+    <a href="{{ route('products.index') }}" class="btn btn-secondary btn-sm" style="margin-left:10px;">
+    Kembali
+</a>
+
 
   </form>
 

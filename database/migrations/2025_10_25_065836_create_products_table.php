@@ -4,22 +4,27 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
-        Schema::create('products', function (Blueprint $table) {
-            $table->id('id_produk');
+        Schema::create('produk', function (Blueprint $table) {
+            $table->bigIncrements('id_produk');
             $table->string('nama_produk');
-            $table->foreignId('id_kategori')->constrained('categories');
-            $table->integer('stok');
-            $table->integer('harga');
-            $table->timestamps(); // bikin created_at & updated_at otomatis
+            $table->unsignedBigInteger('id_kategori')->nullable();
+            $table->integer('stok')->default(0);
+            $table->decimal('harga', 10, 2)->default(0);
+            $table->timestamps();
+        
+            $table->foreign('id_kategori')
+                  ->references('id_kategori')
+                  ->on('kategori')
+                  ->onDelete('cascade');
         });
+        
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('products');
+        Schema::dropIfExists('produk');
     }
 };

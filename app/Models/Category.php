@@ -6,10 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Category extends Model
 {
-    protected $table = 'kategori'; // ✅ perbaikan penting
+    protected $table = 'kategori'; // atau 'kategori' jika itu nama tabelmu
     protected $primaryKey = 'id_kategori';
     protected $fillable = ['nama_kategori'];
-    public $timestamps = false;
 
     public function produk()
     {

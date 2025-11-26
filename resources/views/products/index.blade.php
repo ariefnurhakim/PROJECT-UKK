@@ -5,7 +5,7 @@
 <div class="container py-4">
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="fw-semibold">Data Produk</h2>
+    <h4 class="mb-2 fw-bold text-black">Data Produk</h4>
         <a href="{{ route('products.create') }}" class="btn btn-primary">+ Tambah Produk</a>
     </div>
 
@@ -28,8 +28,8 @@
             @endforeach
         </select>
 
-        <button type="submit" class="btn btn-primary">Search</button>
-        <a href="{{ route('products.index') }}" class="btn btn-secondary">Refresh</a>
+        <button type="submit" class="btn btn-outline-secondary">Search</button>
+        <a href="{{ route('products.index') }}" class="btn btn-outline-success">Refresh</a>
     </form>
 
     <div class="table-responsive">

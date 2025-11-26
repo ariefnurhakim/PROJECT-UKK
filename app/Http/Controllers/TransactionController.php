@@ -1,136 +1,181 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
     public function index()
     {
-        $transactions = Transaction::with('user')->latest()->paginate(12);
-        $total_semua = Transaction::sum('total');
-    
-        return view('transactions.index', compact('transactions','total_semua'));
+        $transaction = Transaction::firstOrCreate(
+            ['status' => 'pending'],
+            ['total' => 0, 'invoice' => 'INV' . time()]
+        );
+
+        $items = TransactionItem::with('product')
+            ->where('transaction_id', $transaction->id)
+            ->get();
+
+        $total = $items->sum('subtotal');
+        $transaction->update(['total' => $total]);
+
+        $products = Product::all();
+
+        return view('transactions.index', compact('transaction', 'items', 'total', 'products'));
     }
-
-
-    public function search(Request $request)
-    {
-        $keyword = $request->keyword;
-    
-        $transactions = Transaction::with('produk')
-            ->whereHas('produk', function($q) use ($keyword) {
-                $q->where('nama_produk', 'like', '%' . $keyword . '%');
-            })
-            ->orWhere('invoice', 'like', '%' . $keyword . '%')
-            ->orWhereHas('user', function($q) use ($keyword){
-                $q->where('name', 'like', '%' . $keyword . '%');
-            })
-            ->paginate(12);
-    
-        $total_semua = Transaction::sum('total');
-    
-        return view('transactions.index', compact('transactions', 'total_semua'));
-    }
-
-
-    public function create()
-    {
-        $products = Product::where('stock','>',0)->get();
-        return view('transactions.create', compact('products'));
-    }
-
 
     public function store(Request $request)
     {
         $request->validate([
-            'product_id'=>'required|array',
-            'qty'=>'required|array',
+            'transaction_id' => 'required|exists:transactions,id',
+            'produk_id' => 'required|exists:produk,id_produk',
+            'jumlah' => 'required|integer|min:1',
         ]);
 
-        $productIds = $request->input('product_id');
-        $qtys = $request->input('qty');
+        $transaction = Transaction::findOrFail($request->transaction_id);
+        $product = Product::where('id_produk', $request->produk_id)->firstOrFail();
 
-        DB::beginTransaction();
-        try {
-            $invoice = 'INV-'.Str::upper(Str::random(6));
-            $total = 0;
+        if ($product->stok <= 0) {
+            return back()->with('error', 'Stok produk sedang habis!');
+        }
 
-            $transaction = Transaction::create([
-                'invoice'=>$invoice,
-                'user_id'=>auth()->id(),
-                'total'=>0,
-                'paid'=>0,
-                'status' => 'unpaid'
-            ]);
+        if ($request->jumlah > $product->stok) {
+            return back()->with('error', 'Jumlah melebihi stok tersedia!');
+        }
 
-            foreach($productIds as $i => $pid){
-                $p = Product::findOrFail($pid);
-                $q = (int)($qtys[$i] ?? 1);
-                $subtotal = $p->price * $q;
+        // CEK ITEM YANG SUDAH ADA
+        $existingItem = TransactionItem::where('transaction_id', $transaction->id)
+            ->where('product_id', $product->id_produk)
+            ->first();
 
-                TransactionItem::create([
-                    'transaction_id'=>$transaction->id,
-                    'product_id'=>$p->id,
-                    'quantity'=>$q,
-                    'price'=>$p->price,
-                    'subtotal'=>$subtotal,
-                ]);
+        if ($existingItem) {
 
-                $p->decrement('stock',$q);
-                $total += $subtotal;
+            $newJumlah = $existingItem->qty + $request->jumlah;
+
+            if ($newJumlah > $product->stok) {
+                return back()->with('error', 'Jumlah melebihi stok tersedia!');
             }
 
-            $transaction->update(['total'=>$total]);
+            $existingItem->update([
+                'qty' => $newJumlah,
+                'subtotal' => $newJumlah * $product->harga,
+            ]);
 
-            DB::commit();
-            return redirect()->route('transactions.index')->with('success','Transaksi berhasil: '.$invoice);
-        } catch(\Throwable $e) {
-            DB::rollBack();
-            return back()->with('error','Gagal menyimpan transaksi: '.$e->getMessage());
+        } else {
+            // TAMBAH ITEM BARU
+            TransactionItem::create([
+                'transaction_id' => $transaction->id,
+                'product_id' => $product->id_produk,
+                'qty' => $request->jumlah,
+                'product_name' => $product->nama_produk,
+                'product_price' => $product->harga,
+                'subtotal' => $product->harga * $request->jumlah,
+            ]);
+            
         }
+
+        return back()->with('success', 'Produk berhasil ditambahkan ke transaksi!');
     }
 
-
-    public function destroy(Transaction $transaction)
+    public function destroy($id)
     {
-        foreach($transaction->items as $item){
-            $item->product->increment('stock', $item->quantity);
-        }
-        
-        $transaction->delete();
-        return back()->with('success','Transaksi dihapus');
+        TransactionItem::findOrFail($id)->delete();
+
+        return back()->with('success', 'Item berhasil dihapus!');
     }
 
+    public function payment()
+    {
+        $transaction = Transaction::where('status', 'pending')->firstOrFail();
+        $items = $transaction->items()->with('product')->get();
+        $total = $items->sum('subtotal');
 
-    // ✅ SUMBUKAN METHOD PAY DI SINI (INSIDE THE CLASS!)
-    public function pay(Request $request, $id)
+        return view('transactions.payment', compact('transaction', 'total'));
+    }
+
+    public function processPayment(Request $request)
     {
         $request->validate([
-            'paid' => 'required|numeric|min:0'
+            'dibayar' => 'required|numeric|min:0',
+            'metode_pembayaran' => 'required|string',
         ]);
 
-        $transaction = Transaction::findOrFail($id);
+        $transaction = Transaction::where('status', 'pending')->firstOrFail();
+        $items = $transaction->items()->with('product')->get();
+        $total = $items->sum('subtotal');
+        $dibayar = $request->dibayar;
 
-        $paid = $request->paid;
-
-        if ($paid < $transaction->total) {
-            return back()->with('error', 'Uang yang dibayar kurang dari total!');
+        if ($dibayar < $total) {
+            return back()->with('error', 'Uangnya kurang bro!')->withInput();
         }
 
-        $kembalian = $paid - $transaction->total;
-
         $transaction->update([
-            'paid' => $paid,
-            'change' => $kembalian,
-            'status' => 'paid',
+            'status' => 'selesai',
+            'total' => $total,
+            'dibayar' => $dibayar,
+            'kembalian' => $dibayar - $total,
+            'metode_pembayaran' => $request->metode_pembayaran,
         ]);
 
-        return redirect()->route('transactions.index')->with('success', 'Pembayaran berhasil! Kembalian: Rp '.number_format($kembalian));
+        foreach ($transaction->items as $item) {
+            $product = Product::where('id_produk', $item->product_id)->first();
+
+            if ($product) {
+                $qty = $item->qty ?? $item->quantity ?? 0;
+                $product->stok = max(0, $product->stok - $qty);
+                $product->save();
+            }
+        }
+
+        return redirect()->route('transactions.print', $transaction->id);
+    }
+
+    public function print($id)
+    {
+        $transaction = Transaction::with('items.product')->findOrFail($id);
+
+        return view('transactions.print', compact('transaction'))
+            ->with('autoRedirect', true);
+    }
+
+    public function reset()
+    {
+        Transaction::where('status', 'pending')->delete();
+
+        return redirect()->route('transactions.index')
+            ->with('success', 'Transaksi baru siap.');
+    }
+
+    public function laporan(Request $request)
+    {
+        $query = Transaction::with('items.product')
+            ->where('status', 'selesai');
+
+        if ($request->search) {
+            $query->where('invoice', 'like', "%{$request->search}%")
+                  ->orWhereHas('items.product', function($q) use ($request) {
+                      $q->where('nama_produk', 'like', "%{$request->search}%");
+                  });
+        }
+
+        if ($request->start) {
+            $query->whereDate('created_at', '>=', $request->start);
+        }
+
+        if ($request->end) {
+            $query->whereDate('created_at', '<=', $request->end);
+        }
+
+        if ($request->metode) {
+            $query->where('metode_pembayaran', $request->metode);
+        }
+
+        $transactions = $query->orderBy('created_at', 'desc')->get();
+
+        return view('reports.index', compact('transactions'));
     }
 }

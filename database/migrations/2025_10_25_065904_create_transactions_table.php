@@ -9,9 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('transactions', function (Blueprint $table) {
-            $table->id();
+            $table->bigIncrements('id'); // diganti dari id() ke bigIncrements()
             $table->string('invoice')->unique();
-            $table->decimal('total', 12, 2);
+            $table->decimal('total', 12, 2)->default(0);
+            $table->string('status')->default('pending');
             $table->timestamps();
         });
     }

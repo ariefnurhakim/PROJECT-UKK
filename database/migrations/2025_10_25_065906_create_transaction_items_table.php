@@ -8,18 +8,26 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('transaction_items', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('transaction_id')->constrained('transactions')->onDelete('cascade');
-            $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
-            $table->integer('quantity');
-            $table->decimal('subtotal', 10, 2);
-            $table->timestamps();
+        Schema::table('transaction_items', function (Blueprint $table) {
+            // Hapus foreign key lama
+            $table->dropForeign(['product_id']);
+
+            // Buat foreign key baru yang tidak menghapus transaction_items
+            $table->foreign('product_id')
+                  ->references('id_produk')->on('produk')
+                  ->nullOnDelete();  // INI FIX-NYA
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('transaction_items');
+        Schema::table('transaction_items', function (Blueprint $table) {
+            // Balik ke cascade kalau revert migration
+            $table->dropForeign(['product_id']);
+
+            $table->foreign('product_id')
+                  ->references('id_produk')->on('produk')
+                  ->onDelete('cascade');
+        });
     }
 };

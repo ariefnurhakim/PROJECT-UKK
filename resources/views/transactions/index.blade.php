@@ -1,129 +1,183 @@
 @extends('layouts.app')
 
-@section('title', 'Transaksi')
-
 @section('content')
-<div class="container-fluid mt-3">
+<div class="container mt-4">
+    <h4 class="mb-2 fw-bold text-black">Transaksi</h4>
 
-    <!-- Search Produk -->
-    <div class="mb-3">
-        <form action="{{ route('transactions.search') }}" method="GET" class="d-flex gap-2">
-            <input type="text" name="keyword" value="{{ request('keyword') }}" class="form-control w-50" placeholder="Cari Produk">
-            <button class="btn btn-primary">Cari</button>
-        </form>
-    </div>
+    {{-- 🔥 TANGGAL TRANSAKSI --}}
+    <p class="text-muted">
+        Tanggal Transaksi: 
+        <strong>{{ $transaction->created_at->format('Y-m-d H:i:s') }}</strong>
+    </p>
 
-    <!-- Tombol Tambah Data -->
-    <div class="mb-3">
-        <a href="{{ route('transactions.create') }}" class="btn btn-info">
-            + Tambah Data
-        </a>
-    </div>
+    {{-- 🔥 POPUP ERROR --}}
+    @if(session('error'))
+    <div class="modal fade show" id="errorModal"
+         style="display:block; background:rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
 
-    <!-- Kasir -->
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Kasir</h5>
-        </div>
-        <div class="card-body p-0">
-            <table class="table table-bordered table-striped text-center mb-0">
-                <thead class="table-primary">
-                    <tr>
-                        <th>Tanggal</th>
-                        <th>ID Transaksi</th>
-                        <th>Produk</th>
-                        <th>Jumlah</th>
-                        <th>Total</th>
-                        <th>Kasir</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($transactions as $t)
-                    <tr>
-                        <td>{{ $t->created_at->format('d M Y') }}</td>
-                        <td>{{ $t->invoice }}</td>
-                        <td>
-                            @foreach($t->items as $item)
-                                {{ $item->product->nama_produk }} <br>
-                            @endforeach
-                        </td>
-                        <td>
-                            @foreach($t->items as $item)
-                                {{ $item->quantity }} <br>
-                            @endforeach
-                        </td>
-                        <td>Rp {{ number_format($t->total,0,',','.') }}</td>
-                        <td>{{ $t->user->name ?? '-' }}</td>
-                        <td>
-
-                            <!-- Tombol Bayar -->
-                            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#payModal{{ $t->id }}">
-                                💳 Bayar
-                            </button>
-
-                            <a href="{{ route('transactions.edit', $t->id) }}" class="btn btn-warning btn-sm">Edit</a>
-
-                            <form action="{{ route('transactions.destroy', $t->id) }}" method="POST" class="d-inline">
-                                @csrf @method('DELETE')
-                                <button class="btn btn-danger btn-sm" onclick="return confirm('Hapus transaksi ini?')">Hapus</button>
-                            </form>
-                        </td>
-                    </tr>
-
-                    <!-- Modal Pembayaran -->
-                    <div class="modal fade" id="payModal{{ $t->id }}" tabindex="-1">
-                        <div class="modal-dialog">
-                            <form action="{{ route('transactions.pay', $t->id) }}" method="POST">
-                                @csrf
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Pembayaran Transaksi</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <p>Total: <b>Rp {{ number_format($t->total) }}</b></p>
-                                        <label>Nominal Bayar</label>
-                                        <input type="number" name="paid" class="form-control" required min="{{ $t->total }}">
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="submit" class="btn btn-primary">Bayar</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    @empty
-                    <tr>
-                        <td colspan="7" class="text-center text-muted">Belum ada transaksi</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Total dan tombol -->
-    <div class="row mt-3">
-        <div class="col-md-4 mb-2">
-            <div class="card border-primary shadow-sm">
-                <div class="card-body text-center">
-                    <h6>Total Semua</h6>
-                    <h4>Rp {{ number_format($total_semua,0,',','.') }}</h4>
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Peringatan!</h5>
                 </div>
+
+                <div class="modal-body">
+                    {{ session('error') }}
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeErrorModal()">Tutup</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function closeErrorModal() {
+        document.getElementById('errorModal').style.display = "none";
+    }
+    </script>
+    @endif
+
+    <div class="row">
+        <!-- Tabel items -->
+        <div class="col-md-8">
+            <div class="card mb-4 shadow-sm rounded-3">
+                <div class="card-header bg-primary text-white fw-semibold">
+                    Daftar Items
+                </div>
+
+                <div class="card-body p-0">
+                    <table class="table table-striped mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Produk</th>
+                                <th>Harga</th>
+                                <th>Jumlah</th>
+                                <th>Subtotal</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                        @forelse($items as $item)
+                        <tr>
+                            <td>{{ $item->product->nama_produk ?? 'Produk tidak ditemukan' }}</td>
+                            <td>Rp {{ number_format($item->product->harga ?? 0, 0, ',', '.') }}</td>
+                            <td>{{ $item->quantity }}</td>
+                            <td>Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
+                            <td class="text-center">
+                                <!-- Tombol hapus yang memicu modal -->
+                                <button class="btn btn-danger btn-sm"
+                                        onclick="openDeleteModal('{{ $item->id }}', '{{ $item->product->nama_produk }}')">
+                                    Hapus
+                                </button>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-3">Belum ada item</td>
+                        </tr>
+                        @endforelse
+
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card-footer text-end bg-light">
+                    <p class="text-muted">
+                        Tanggal Transaksi: 
+                        <strong>{{ $transaction->created_at->timezone('Asia/Jakarta')->format('d-m-y H:i:s') }}</strong>
+                    </p>
+                </div>
+
             </div>
         </div>
 
-        <div class="col-md-4 mb-2">
-            <a href="{{ route('dashboard') }}" class="btn btn-secondary w-100">Kembali</a>
+        <!-- Form Tambah Produk -->
+        <div class="col-md-4">
+            <div class="card shadow-sm rounded-3">
+                <div class="card-header bg-success text-white fw-semibold">
+                    Tambah Produk
+                </div>
+
+                <div class="card-body">
+                    <form action="{{ route('transactions.store') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="transaction_id" value="{{ $transaction->id }}">
+
+                        <div class="mb-3">
+                            <label for="produk_id" class="form-label">Produk</label>
+                            <select name="produk_id" id="produk_id" class="form-select" required>
+                                <option value="">-- Pilih Produk --</option>
+                                @foreach($products as $produk)
+                                    <option value="{{ $produk->id_produk }}">
+                                        {{ $produk->nama_produk }} - Rp {{ number_format($produk->harga, 0, ',', '.') }}
+                                        (Stok: {{ $produk->stok }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="jumlah" class="form-label">Jumlah</label>
+                            <input type="number" name="jumlah" id="jumlah"
+                                   class="form-control" min="1" value="1" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Tambah</button>
+                    </form>
+                </div>
+
+                <div class="card-footer bg-light text-center">
+                    <a href="{{ route('transactions.payment') }}" class="btn btn-success w-100">Bayar</a>
+                </div>
+
+            </div>
         </div>
     </div>
-
-    <!-- Pagination -->
-    <div class="mt-3">
-        {{ $transactions->links() }}
-    </div>
-
 </div>
+
+{{-- 🔥 MODAL HAPUS ITEM --}}
+<div class="modal fade show" id="deleteModal"
+     style="display:none; background:rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Konfirmasi Hapus</h5>
+            </div>
+
+            <div class="modal-body">
+                Yakin ingin menghapus <b id="namaProdukHapus"></b> ?
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDeleteModal()">Batal</button>
+
+                <form id="deleteForm" method="POST">
+                    @csrf
+                    @method('DELETE')
+                    <button class="btn btn-danger">Hapus</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+function openDeleteModal(id, nama) {
+    document.getElementById("namaProdukHapus").innerHTML = nama;
+    document.getElementById("deleteForm").action = "/transactions/" + id;
+
+    document.getElementById("deleteModal").style.display = "block";
+}
+
+function closeDeleteModal() {
+    document.getElementById("deleteModal").style.display = "none";
+}
+</script>
+
 @endsection

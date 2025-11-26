@@ -82,12 +82,10 @@
       <input type="text" name="username" class="form-control" placeholder="Username">
 <input type="password" name="password" class="form-control" placeholder="Password">
 
-      <button type="submit">Masuk</button>
+      <button type="submit"> <a href="/dashboard">Masuk</a></button>
     </form>
 
-    <div class="register">
-      Belum punya akun? <a href="{{ route('register') }}">Daftar Sekarang</a>
-    </div>
+   
   </div>
 </body>
 </html>

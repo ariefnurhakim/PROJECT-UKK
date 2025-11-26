@@ -1,46 +1,45 @@
 @extends('layouts.app')
 
-@section('title', 'Transaksi Baru')
+@section('title', 'Tambah Produk ke Transaksi')
 
 @section('content')
-<div class="container mt-3">
+<div class="container mt-4" style="max-width: 600px;">
 
-    <h3 class="fw-bold mb-3">💰 Transaksi Baru</h3>
-
-    <form action="{{ route('transactions.store') }}" method="POST">
-        @csrf
-
-        <table class="table table-bordered align-middle">
-            <thead class="table-primary">
-                <tr>
-                    <th style="width: 40%">Nama Produk</th>
-                    <th style="width: 15%">Stok</th>
-                    <th style="width: 20%">Qty</th>
-                    <th style="width: 25%">Harga</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($products as $p)
-                <tr>
-                    <td>
-                        <input type="hidden" name="product_id[]" value="{{ $p->id }}">
-                        {{ $p->nama_produk }}
-                    </td>
-                    <td>{{ $p->stock }}</td>
-                    <td>
-                        <input type="number" name="qty[]" value="0" min="0" max="{{ $p->stock }}" class="form-control text-center">
-                    </td>
-                    <td>Rp {{ number_format($p->price,0,',','.') }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-
-        <div class="d-flex justify-content-between mt-4">
-            <a href="{{ route('transactions.index') }}" class="btn btn-secondary">Kembali</a>
-            <button class="btn btn-primary px-4">Simpan Transaksi</button>
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Tambah Produk ke Keranjang</h5>
         </div>
-    </form>
+
+        <div class="card-body">
+            
+            <form action="{{ route('transaksi.store') }}" method="POST"> {{-- ✅ Ubah ke transaksi.store --}}
+                @csrf
+
+                <input type="hidden" name="id_produk" value="{{ $product->id_produk }}"> {{-- ✅ id_produk --}}
+
+                <div class="mb-3">
+                    <label class="form-label">Nama Produk</label>
+                    <input type="text" class="form-control" value="{{ $product->nama_produk }}" readonly>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Harga Satuan</label>
+                    <input type="text" class="form-control" value="Rp {{ number_format($product->harga) }}" readonly>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Jumlah</label>
+                    <input type="number" name="qty" class="form-control" placeholder="Masukkan jumlah" min="1" required> {{-- ✅ qty --}}
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a href="{{ route('transaksi.index') }}" class="btn btn-secondary">Kembali</a> {{-- ✅ transaksi.index --}}
+                    <button type="submit" class="btn btn-success px-4">Tambah</button>
+                </div>
+            </form>
+
+        </div>
+    </div>
 
 </div>
 @endsection

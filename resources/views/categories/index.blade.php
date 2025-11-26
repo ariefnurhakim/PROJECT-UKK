@@ -5,7 +5,7 @@
 <div class="container py-4">
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="fw-semibold">Data Kategori</h2>
+    <h4 class="mb-2 fw-bold text-black">Data Kategori</h4>
         <a href="{{ route('categories.create') }}" class="btn btn-primary">+ Tambah Kategori</a>
     </div>
 
@@ -14,12 +14,16 @@
     @endif
 
     <!-- Search -->
-    <form method="GET" action="{{ route('categories.index') }}" class="mb-3 d-flex gap-2">
-        <input type="text" name="search" value="{{ request('search') }}"
-               class="form-control w-auto" placeholder="Cari kategori...">
-        <button type="submit" class="btn btn-primary">Cari</button>
-        <a href="{{ route('categories.index') }}" class="btn btn-secondary">Refresh</a>
-    </form>
+    <form method="GET" action="{{ route('products.index') }}" class="mb-3 d-flex gap-2">
+
+<input type="text" name="search" value="{{ request('search') }}" class="form-control w-auto"
+       placeholder="Cari nama kategori...">
+
+
+
+<button type="submit" class="btn btn-outline-secondary">Search</button>
+<a href="{{ route('products.index') }}" class="btn btn-outline-success">Refresh</a>
+</form>
 
     <div class="table-responsive">
         <table class="table table-bordered align-middle table-striped text-center">
