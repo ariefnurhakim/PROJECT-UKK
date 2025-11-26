@@ -14,9 +14,8 @@
             align-items: flex-start;
         }
 
-        /* WRAPPER AGAR STRUK DI TENGAH */
         .wrapper {
-            width: 260px; /* sedikit lebih besar dari 58mm supaya proporsional */
+            width: 260px;
             background: white;
             margin-top: 20px;
             padding: 10px;
@@ -38,7 +37,6 @@
         table { width: 100%; border-collapse: collapse; }
         td { padding: 2px 0; vertical-align: top; }
 
-        /* Sembunyikan tombol saat print */
         @media print {
             body { background: white; }
             .wrapper { box-shadow: none; margin-top: 0; }
@@ -51,7 +49,6 @@
 
 <div class="wrapper">
 
-    <!-- HEADER TOKO -->
     <div class="center" style="margin-bottom:5px;">
         <strong>TSIQOH SECOND STORE</strong><br>
         Barang Thrift Berkualitas<br>
@@ -59,7 +56,6 @@
     </div>
     <hr>
 
-    <!-- DETAIL TRANSAKSI -->
     <table class="small">
         <tr><td>ID Struk</td><td>: {{ $transaction->id }}</td></tr>
         <tr><td>Invoice</td><td>: {{ $transaction->invoice }}</td></tr>
@@ -73,7 +69,6 @@
     </table>
     <hr>
 
-    <!-- PRODUK -->
     <table>
         <tr>
             <td><strong>Nama</strong></td>
@@ -93,7 +88,6 @@
     </table>
     <hr>
 
-    <!-- TOTAL -->
     <table>
         <tr>
             <td><strong>TOTAL</strong></td>
@@ -110,7 +104,6 @@
     </table>
     <hr>
 
-    <!-- FOOTER -->
     <div class="center small" style="margin-top:5px;">
         TERIMA KASIH SUDAH BELANJA ♻️<br>
         Barang thrift — Harga hemat, gaya tetap lekat!<br>
@@ -119,9 +112,8 @@
 
     <hr>
 
-    <!-- BUTTON ARAH -->
     <div id="btnArea" class="center" style="margin-top:12px;">
-        <button onclick="window.print()" 
+        <button onclick="printWithAlert()" 
                 style="background:#28a745; color:white; padding:7px 0; width:100%;
                 border:none; border-radius:5px; margin-bottom:8px; cursor:pointer;">
             🖨️ Cetak Struk
@@ -135,6 +127,23 @@
     </div>
 
 </div>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+function printWithAlert() {
+    Swal.fire({
+        icon: 'success',
+        title: 'Pembayaran Berhasil!',
+        text: 'Struk siap dicetak.',
+        timer: 1700,
+        showConfirmButton: false
+    }).then(() => {
+        window.print();
+    });
+}
+</script>
 
 </body>
 </html>
