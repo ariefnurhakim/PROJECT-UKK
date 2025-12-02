@@ -60,16 +60,6 @@
     button:hover {
       background-color: #006ee6;
     }
-    .register {
-      margin-top: 18px;
-      font-size: 14px;
-      color: #666;
-    }
-    .register a {
-      color: #007bff;
-      text-decoration: none;
-      font-weight: 600;
-    }
   </style>
 </head>
 <body>
@@ -77,15 +67,15 @@
     <h1>Qashier</h1>
     <p>Masuk ke akun Anda</p>
 
-    <form method="POST" action="{{ route('login') }}">
+    <form method="POST" action="{{ route('login.post') }}">
       @csrf
-      <input type="text" name="username" class="form-control" placeholder="Username">
-<input type="password" name="password" class="form-control" placeholder="Password">
 
-      <button type="submit"> <a href="/dashboard">Masuk</a></button>
+      <input type="text" name="username" placeholder="Username" required>
+      <input type="password" name="password" placeholder="Password" required>
+
+      <button type="submit">Masuk</button>
     </form>
 
-   
   </div>
 </body>
 </html>
